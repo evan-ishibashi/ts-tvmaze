@@ -6,15 +6,24 @@ const $ = jQuery;
 
 const $showsList = $("#showsList");
 const $episodesArea = $("#episodesArea");
+const $episodesList = $("#episodesList");
 const $searchForm = $("#searchForm");
 
 const TVMAZE_BASE_URL = "https://api.tvmaze.com";
+const DEFAULT_IMAGE_URL = "https://tinyurl.com/tv-missing";
 
 interface ShowInterface {
   id: number;
   name: string;
   summary: string;
   image: string;
+}
+
+interface EpisodeInterface {
+  id: number;
+  name: string;
+  season: number;
+  number: number;
 }
 
 /** Given a search term, search for tv shows that match that query.
@@ -25,40 +34,25 @@ interface ShowInterface {
  */
 
 async function searchShowsByTerm(term: string): Promise<ShowInterface[]> {
-  // ADD: Remove placeholder & make request to TVMaze search shows API.
+  const q = term;
+  const params = new URLSearchParams({ q });
 
-  const response: Promise<> = await fetch(`${TVMAZE_BASE_URL}/search/shows?q=${term}`);
-  const showData: [] = await response.json();
+  const response = await fetch(`${TVMAZE_BASE_URL}/search/shows?${params}`);
+  const showData: Record<string, any>[] = await response.json(); // FIXME:
 
-  const filteredData = await showData.map((show: Record<string, any>) => ({
+  const filteredData = showData.map((show: Record<string, any>) => ({
     id: show.show.id,
     name: show.show.name,
     summary: show.show.summary,
-    image: show.show.image.medium,
+    image: show.show.image?.medium || DEFAULT_IMAGE_URL,
   }));
 
-  return [
-    {
-      id: 1767,
-      name: "The Bletchley Circle",
-      summary: `<p><b>The Bletchley Circle</b> follows the journey of four ordinary
-           women with extraordinary skills that helped to end World War II.</p>
-         <p>Set in 1952, Susan, Millie, Lucy and Jean have returned to their
-           normal lives, modestly setting aside the part they played in
-           producing crucial intelligence, which helped the Allies to victory
-           and shortened the war. When Susan discovers a hidden code behind an
-           unsolved murder she is met by skepticism from the police. She
-           quickly realises she can only begin to crack the murders and bring
-           the culprit to justice with her former friends.</p>`,
-      image:
-        "http://static.tvmaze.com/uploads/images/medium_portrait/147/369403.jpg",
-    },
-  ];
+  return filteredData;
 }
 
 /** Given list of shows, create markup for each and to DOM */
 
-function populateShows(shows) {
+function populateShows(shows: ShowInterface[]): void {
   $showsList.empty();
 
   for (let show of shows) {
@@ -66,8 +60,8 @@ function populateShows(shows) {
       `<div data-show-id="${show.id}" class="Show col-md-12 col-lg-6 mb-4">
          <div class="media">
            <img
-              src="http://static.tvmaze.com/uploads/images/medium_portrait/160/401704.jpg"
-              alt="Bletchly Circle San Francisco"
+              src=${show.image}
+              alt=${show.name}
               class="w-25 me-3">
            <div class="media-body">
              <h5 class="text-primary">${show.name}</h5>
@@ -106,8 +100,31 @@ $searchForm.on("submit", async function (evt) {
  *      { id, name, season, number }
  */
 
-// async function getEpisodesOfShow(id) { }
+async function getEpisodesOfShow(id: number): Promise<EpisodeInterface[]> {
+  const response = await fetch(`${TVMAZE_BASE_URL}/shows/${id}/episodes`);
+  const episodeData = await response.json();
 
-/** Write a clear docstring for this function... */
+  const filteredData = episodeData.map((episode: Record<string, any>) => ({
+    id: episode.id,
+    name: episode.name,
+    season: episode.season,
+    number: episode.number,
+  }));
 
-// function populateEpisodes(episodes) { }
+  return filteredData;
+}
+
+/** Given an array of episodes [{ id, name, season, number }, ... ], populate
+ * episode data into DOM. */
+
+function populateEpisodes(episodes: EpisodeInterface[]): void {
+  $episodesList.empty();
+
+  for (let episode of episodes) {
+    const $episode = $(
+      `<li>${episode.name} (Season ${episode.season}, Number ${episode.number})</li>`
+    );
+
+    $episodesList.append($episode);
+  }
+}

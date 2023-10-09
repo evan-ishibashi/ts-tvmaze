@@ -127,4 +127,13 @@ function populateEpisodes(episodes: EpisodeInterface[]): void {
 
     $episodesList.append($episode);
   }
+
+  /** handles click on show episodes button */
+  $showsList.on("click", ".Show-getEpisodes", (evt) => {
+    const id = $(evt.target).closest('data-show-id');
+    const episodes = getEpisodesOfShow(Number(id));
+    populateEpisodes(episodes);
+    $episodesList.show();
+
+  });
 }

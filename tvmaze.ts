@@ -1,6 +1,5 @@
 "use strict";
 
-import axios from "axios";
 import jQuery from "jquery";
 
 const $ = jQuery;
@@ -28,10 +27,10 @@ interface ShowInterface {
 async function searchShowsByTerm(term: string): Promise<ShowInterface[]> {
   // ADD: Remove placeholder & make request to TVMaze search shows API.
 
-  const response = await fetch(`${TVMAZE_BASE_URL}/search/shows?q=${term}`);
-  const showData = await response.json();
+  const response: Promise<> = await fetch(`${TVMAZE_BASE_URL}/search/shows?q=${term}`);
+  const showData: [] = await response.json();
 
-  const filteredData = await showData.map((show) => ({
+  const filteredData = await showData.map((show: Record<string, any>) => ({
     id: show.show.id,
     name: show.show.name,
     summary: show.show.summary,

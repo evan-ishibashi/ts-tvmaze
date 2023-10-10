@@ -19,6 +19,15 @@ interface ShowInterface {
   image: string;
 }
 
+interface APIShowInterface {
+  show: {
+    id: number;
+    name: string;
+    summary: string;
+    image?: { medium: string };
+  };
+}
+
 interface EpisodeInterface {
   id: number;
   name: string;
@@ -37,10 +46,12 @@ async function searchShowsByTerm(term: string): Promise<ShowInterface[]> {
   const q = term;
   const params = new URLSearchParams({ q });
 
-  const response = await fetch(`${TVMAZE_BASE_URL}/search/shows?${params}`);
-  const showData: Record<string, any>[] = await response.json(); // FIXME:
+  const response = await fetch(`${TVMAZE_BASE_URL}/search/shows?${params}`, {
+    method: "GET",
+  });
+  const showData = (await response.json()) as APIShowInterface[];
 
-  const filteredData = showData.map((show: Record<string, any>) => ({
+  const filteredData = showData.map((show) => ({
     id: show.show.id,
     name: show.show.name,
     summary: show.show.summary,
@@ -83,7 +94,7 @@ function populateShows(shows: ShowInterface[]): void {
  *    Hide episodes area (that only gets shown if they ask for episodes)
  */
 
-async function searchForShowAndDisplay() {
+async function searchForShowAndDisplay(): Promise<void> {
   const term = $("#searchForm-term").val();
   const shows = await searchShowsByTerm(term);
 
@@ -102,9 +113,9 @@ $searchForm.on("submit", async function (evt) {
 
 async function getEpisodesOfShow(id: number): Promise<EpisodeInterface[]> {
   const response = await fetch(`${TVMAZE_BASE_URL}/shows/${id}/episodes`);
-  const episodeData = await response.json();
+  const episodeData = (await response.json()) as EpisodeInterface[];
 
-  const filteredData = episodeData.map((episode: Record<string, any>) => ({
+  const filteredData = episodeData.map((episode) => ({
     id: episode.id,
     name: episode.name,
     season: episode.season,
@@ -127,13 +138,19 @@ function populateEpisodes(episodes: EpisodeInterface[]): void {
 
     $episodesList.append($episode);
   }
-
-  /** handles click on show episodes button */
-  $showsList.on("click", ".Show-getEpisodes", (evt) => {
-    const id = $(evt.target).closest('data-show-id');
-    const episodes = getEpisodesOfShow(Number(id));
-    populateEpisodes(episodes);
-    $episodesList.show();
-
-  });
 }
+
+/** Get specific ID, call API for episode information, and populate episode
+ * details on the DOM. */
+
+async function getEpisodesAndDisplay(evt: JQuery.ClickEvent) {
+  const id = $(evt.target).closest(".Show").attr("data-show-id");
+  const episodes = await getEpisodesOfShow(Number(id));
+
+  populateEpisodes(episodes);
+
+  $episodesArea.show();
+}
+
+/** Handles click on show episodes button. */
+$showsList.on("click", ".Show-getEpisodes", getEpisodesAndDisplay);
